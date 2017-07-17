@@ -1,0 +1,32 @@
+{
+  "name": "axist-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "grunt test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wakaid/axist-server.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wakaid/axist-server/issues"
+  },
+  "homepage": "https://github.com/wakaid/axist-server#readme",
+  "dependencies": {
+    "express": "^4.15.3"
+  },
+  "devDependencies": {
+    "jshint": "~2.9.0",
+    "grunt": "~0.4.5",
+    "grunt-contrib-jshint": "~0.11.0",
+    "grunt-config-dir": "~0.3.2",
+    "grunt-contrib-clean": "~0.6.0",
+    "grunt-exec": "~0.4.6",
+    "grunt-concurrent": "~1.0.0"
+  }
+}
