@@ -6,7 +6,7 @@ var app = express();
 
 app.get('/test',
     function (req, res) {
-        res.status(200).send('pre auto deploy');
+        res.status(200).send('for auto deploy');
     }
 );
 
