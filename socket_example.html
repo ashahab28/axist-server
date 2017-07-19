@@ -1,0 +1,8 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.min.js"></script>
+<script>
+  var socket = io.connect('http://localhost:8080');
+  socket.on('conversation', function (data) {
+    console.log(data);
+    socket.emit('conversation', { my: 'data' });
+  });
+</script>
