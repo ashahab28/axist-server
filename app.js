@@ -42,7 +42,7 @@ app.post('/register',
             }
 
             res.status(200).send(user.toJSON());
-        })
+        });
     }
 );
 
@@ -54,20 +54,24 @@ io.on('connection', function (socket) {
             user_id: Joi.string().required(),
             message: Joi.string().required(),
         }), { stripUnknown: { objects: true } }, function (err, validatedMessage) {
-            if (err) {s
+            if (err) {
                 return socket.emit('conversation-error', { error: 'Message is not in a valid format' });
             }
 
-            console.log(message);
+            console.log(validatedMessage);
 
-            conversationDAO.createConversation(message, function (err, conversation) {
+            conversationDAO.createConversation(validatedMessage, function (err) {
                 if (err) {
+                    console.log(err);
+
                     return socket.emit('conversation-error', { error: 'Cannot save conversation' });
                 }
 
+                console.log('hoe');
+
                 //call axist here and emit the response
 
-                socket.emit('conversation', { message: 'sorry we are still building a greate stuff now! :)' });
+                socket.emit('conversation', { message: 'sorry we are still building a great stuff now! :)' });
             });
         });
     });

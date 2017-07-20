@@ -1,21 +1,43 @@
+</!DOCTYPE html>
+<html>
+<head>
+  <title>Axist</title>
+</head>
+<body>
+  <p id='response_chat'></p>
+  <form id="form_send_chat" action="#">
+    Userid: <input type="text" id="userid" name="userid"><br>
+    Chat: <input type="text" id="message" name="message"><br>
+  <input type="submit" value="Submit" onclick="sendMessage()" onsubmit="return false">
+  </form>
+</body>
+</html>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.min.js"></script>
 <script>
   var socket = io.connect('http://localhost:8080');
 
-  //get users input here
+  function sendMessage() {
+    var userId = document.getElementById("userid").value;
+    var message = document.getElementById("message").value;
+
+    var messageToBeSend = {
+      "message": message,
+      "user_id": userId
+    };
+
+    socket.emit('conversation', messageToBeSend);
+  }
 
   socket.on('conversation', function (data) {
     console.log(data);
 
-    var message = {
-        "message": "mock input",
-        "user_id": "test"
-    };
-
-    socket.emit('conversation', message);
+    document.getElementById("response_chat").innerHTML = data.message;
   });
 
   socket.on('conversation-error', function (data) {
     console.log(data);
+    
+    document.getElementById("response_chat").innerHTML = data.error;
   });
 </script>

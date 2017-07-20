@@ -1,5 +1,6 @@
 'use strict';
 
+var _ = require('underscore');
 var assert = require('assert-plus');
 
 function ConversationDAO (mongoConnection) {
@@ -20,11 +21,19 @@ ConversationDAO.prototype.createConversation = function (conversationData, callb
     this.models.Conversation.create(conversationData, callback);
 };
 
-ConversationDAO.prototype.findConversationsByUserId = function (userId, callback) {
+ConversationDAO.prototype.findConversationsByUserId = function (userId, options, callback) {
     assert.string(userId);
+    assert.object(options);
     assert.func(callback);
 
-    this.models.Conversation.find({ user_id: userId }, callback);
+    var query = { user_id: userId };
+    var conversationLimit = 0;
+
+    if (!_.isUndefined(options.conversation_limit)) {
+        conversationLimit = options.conversation_limit;
+    }
+
+    this.models.Conversation.find(query).sort({ created: -1 }).limit(conversationLimit).exec(callback);
 };
 
 ConversationDAO.prototype.findConversationById = function (conversationId, callback) {

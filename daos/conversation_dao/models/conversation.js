@@ -24,6 +24,4 @@ var ConversationSchema = new mongoose.Schema({
     }
 });
 
-ConversationSchema.index({ user_id: 1 }, { unique: true });
-
 module.exports = ConversationSchema;
