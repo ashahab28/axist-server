@@ -8,7 +8,10 @@ var Joi = require('joi');
 var ExpressValidation = require('express-validation');
 var bodyParser = require('body-parser');
 
+var witAIConfig = require('./config/wit_ai');
 var mongoConfig = require('./config/mongo');
+
+var WitAIService = require('./services/wit_ai_service');
 
 var ConversationDAO = require('./daos/conversation_dao');
 var UserDAO = require('./daos/user_dao');
@@ -18,6 +21,8 @@ var server = http.Server(app);
 var io = socketio(server);
 
 var mongoConnection = mongoose.createConnection(mongoConfig);
+
+var witAIService = new WitAIService(witAIConfig);
 
 var conversationDAO = new ConversationDAO(mongoConnection);
 var userDAO = new UserDAO(mongoConnection);
