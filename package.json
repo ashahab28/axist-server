@@ -19,11 +19,13 @@
   "homepage": "https://github.com/wakaid/axist-server#readme",
   "dependencies": {
     "assert-plus": "^1.0.0",
+    "async": "^2.5.0",
     "body-parser": "^1.17.2",
     "express": "^4.15.3",
     "express-validation": "^1.0.2",
     "joi": "^10.6.0",
     "mongoose": "^4.11.3",
+    "node-wit": "^4.2.0",
     "socket.io": "^2.0.3",
     "underscore": "^1.8.3"
   },

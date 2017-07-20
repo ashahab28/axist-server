@@ -64,6 +64,20 @@ app.post('/login',
     }
 );
 
+app.post('/messages',
+    ExpressValidation({
+        body: {
+            message: Joi.string().required()
+        }
+    }),
+    function (req, res) {
+        witAIService.handleIncomingMessage(req.body.message, function(err, response) {
+            res.status(200).send(response);
+        });
+    }
+);
+
+
 io.on('connection', function (socket) {
     socket.emit('conversation', { message: 'Hello! may i help you? :)' });
 
