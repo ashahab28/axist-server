@@ -46,8 +46,69 @@ app.post('/register',
     }
 );
 
+app.post('/login', 
+    ExpressValidation({
+        body: {
+            username: Joi.string().required(),
+            password: Joi.string().required()
+        }
+    }),
+    function (req, res) {
+        userDAO.findUserByUsername(req.body, function (err, user) {
+            if (err) {
+                return res.status(500).send('Sorry, there is internal server issue happening right now :(');
+            }
+
+            res.status(200).send(user.toJSON());
+        });
+    }
+);
+
 io.on('connection', function (socket) {
     socket.emit('conversation', { message: 'Hello! may i help you? :)' });
+
+    socket.on('register', function (message) {
+        Joi.validate(message, Joi.object().keys({
+            username: Joi.string().required(),
+            password: Joi.string().required(),
+            email: Joi.string().required(),
+        }), { stripUnknown: { objects: true } }, function (err, validatedMessage) {
+            if (err) {
+                return socket.emit('register_error', { error: 'Message is not in a valid format' });
+            }
+
+            userDAO.createUser(validatedMessage, function (err) {
+                if (err) {
+                    console.log(err);
+
+                    return socket.emit('register_error', { error: 'Sorry, there is internal server issue happening right now :(' });
+                }
+
+                socket.emit('register', { message: 'You have successfully registered to Axist! Yeay!' });
+            });
+        });
+    });
+
+    socket.on('login', function (message) {
+        Joi.validate(message, Joi.object().keys({
+            username: Joi.string().required(),
+            password: Joi.string().required(),
+        }), { stripUnknown: { objects: true } }, function (err, validatedMessage) {
+            if (err) {
+                return socket.emit('login_error', { error: 'Message is not in a valid format' });
+            }
+
+            userDAO.findUserByUsername(validatedMessage, function (err, user) {
+                if (err) {
+                    console.log(err);
+
+                    return socket.emit('login_error', { error: 'Sorry, there is internal server issue happening right now :(' });
+                }
+
+                socket.emit('login', { message: 'Welcome to Axist! here is your user id : ' + user.id });
+            });
+        });
+    });    
 
     socket.on('conversation', function (message) {
         Joi.validate(message, Joi.object().keys({
@@ -55,14 +116,14 @@ io.on('connection', function (socket) {
             message: Joi.string().required(),
         }), { stripUnknown: { objects: true } }, function (err, validatedMessage) {
             if (err) {
-                return socket.emit('conversation-error', { error: 'Message is not in a valid format' });
+                return socket.emit('conversation_error', { error: 'Message is not in a valid format' });
             }
 
             conversationDAO.createConversation(validatedMessage, function (err, conversation) {
                 if (err) {
                     console.log(err);
 
-                    return socket.emit('conversation-error', { error: 'Cannot save conversation' });
+                    return socket.emit('conversation_error', { error: 'Cannot save conversation' });
                 }
 
                 //call axist here and emit the response

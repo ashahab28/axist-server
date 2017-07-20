@@ -39,7 +39,7 @@
     document.getElementById("response_chat").innerHTML = data.message;
   });
 
-  socket.on('conversation-error', function (data) {
+  socket.on('conversation_error', function (data) {
     console.log(data);
 
     document.getElementById("response_chat").innerHTML = data.error;
