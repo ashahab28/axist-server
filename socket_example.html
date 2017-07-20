@@ -3,7 +3,7 @@
 <head>
   <title>Axist</title>
 </head>
-<body>
+<body onbeforeunload="pageLoadHandler()">
   <p id='response_chat'></p>
   <form id="form_send_chat" action="#">
     Userid: <input type="text" id="userid" name="userid"><br>
@@ -16,6 +16,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.min.js"></script>
 <script>
   var socket = io.connect('http://localhost:8080');
+
+  function pageLoadHandler() {
+    socket.close();
+  }
 
   function sendMessage() {
     var userId = document.getElementById("userid").value;
@@ -37,7 +41,7 @@
 
   socket.on('conversation-error', function (data) {
     console.log(data);
-    
+
     document.getElementById("response_chat").innerHTML = data.error;
   });
 </script>

@@ -58,20 +58,16 @@ io.on('connection', function (socket) {
                 return socket.emit('conversation-error', { error: 'Message is not in a valid format' });
             }
 
-            console.log(validatedMessage);
-
-            conversationDAO.createConversation(validatedMessage, function (err) {
+            conversationDAO.createConversation(validatedMessage, function (err, conversation) {
                 if (err) {
                     console.log(err);
 
                     return socket.emit('conversation-error', { error: 'Cannot save conversation' });
                 }
 
-                console.log('hoe');
-
                 //call axist here and emit the response
 
-                socket.emit('conversation', { message: 'sorry we are still building a great stuff now! :)' });
+                socket.emit('conversation', { message: 'Hey there, we receive your message! here is your message : ' + conversation.message });
             });
         });
     });
