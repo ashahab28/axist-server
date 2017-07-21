@@ -5,8 +5,9 @@ var mongoose = require('mongoose');
 var ConversationSchema = new mongoose.Schema({
     user_id: { type: String, required: true },
     message: { type: String, required: true },
-    context: { type: String },
-    intent: { type: Number }
+    context: { type: Array },
+    intent: { type: String },
+    location: { type: String }
 }, {
     timestamps: {
         createdAt: 'created',

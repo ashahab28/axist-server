@@ -1,5 +1,7 @@
 'use strict';
 
+var _ = require('underscore');
+var async = require('async');
 var express = require('express');
 var http = require('http');
 var socketio = require('socket.io');
@@ -14,6 +16,7 @@ var mongoConfig = require('./config/mongo');
 var WitAIService = require('./services/wit_ai_service');
 
 var ConversationDAO = require('./daos/conversation_dao');
+var ResponseGeneratorDAO = require('./daos/response_generator_dao');
 var UserDAO = require('./daos/user_dao');
 
 var app = express();
@@ -26,6 +29,11 @@ var witAIService = new WitAIService(witAIConfig);
 
 var conversationDAO = new ConversationDAO(mongoConnection);
 var userDAO = new UserDAO(mongoConnection);
+var responseGeneratorDAO = new ResponseGeneratorDAO(mongoConnection);
+
+var errorHandler = function (res) {
+    return res.status(500).send('Sorry, there is internal server issue happening right now :(');
+};
 
 server.listen(8080);
 
@@ -43,7 +51,7 @@ app.post('/register',
     function (req, res) {
         userDAO.createUser(req.body, function (err, user) {
             if (err) {
-                return res.status(500).send('Sorry, there is internal server issue happening right now :(');
+                return errorHandler(res);
             }
 
             res.status(200).send(user.toJSON());
@@ -61,10 +69,29 @@ app.post('/login',
     function (req, res) {
         userDAO.findUserByUsername(req.body, function (err, user) {
             if (err) {
-                return res.status(500).send('Sorry, there is internal server issue happening right now :(');
+                return errorHandler(res);
             }
 
             res.status(200).send(user.toJSON());
+        });
+    }
+);
+
+
+app.post('/response_templates',
+    ExpressValidation({
+        body: {
+            intent: Joi.string().required(),
+            response: Joi.string().required()
+        }
+    }),
+    function (req, res) {
+        responseGeneratorDAO.createResponseTemplate(req.body, function (err, responseTemplate) {
+            if (err) {
+                return errorHandler(res);
+            }
+
+            res.status(200).send(responseTemplate);
         });
     }
 );
@@ -76,12 +103,28 @@ app.post('/messages',
         }
     }),
     function (req, res) {
-        witAIService.handleIncomingMessage(req.body.message, function(err, response) {
-            res.status(200).send(response);
+        async.auto({
+            wit_ai_object: function (next) {
+                witAIService.handleIncomingMessage(req.body.message, next);
+            },
+            conversation: ['wit_ai_object', function (result, next) {
+                var conversationData = { user_id: 'ahmad' };
+                _.defaults(conversationData, result.wit_ai_object);
+
+                conversationDAO.createConversation(conversationData, next);
+            }],
+            responses: ['conversation', function (result, next) {
+                responseGeneratorDAO.generateResponse(result.conversation, next);
+            }]
+        }, function (err, results) {
+            if (err) {
+                return errorHandler(res);
+            }
+
+            res.status(200).send(results.responses);
         });
     }
 );
-
 
 io.on('connection', function (socket) {
     socket.emit('conversation', { message: 'Hello! may i help you? :)' });
