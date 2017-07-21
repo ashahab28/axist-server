@@ -16,6 +16,7 @@ ConversationDAO.prototype.createConversation = function (conversationData, callb
     assert.object(conversationData);
     assert.string(conversationData.user_id);
     assert.string(conversationData.message);
+    assert.optionalString(conversationData.intent);
     assert.func(callback);
 
     this.models.Conversation.create(conversationData, callback);
