@@ -31,7 +31,9 @@ var conversationDAO = new ConversationDAO(mongoConnection);
 var userDAO = new UserDAO(mongoConnection);
 var responseGeneratorDAO = new ResponseGeneratorDAO(mongoConnection);
 
-var errorHandler = function (res) {
+var errorHandler = function (err, res) {
+    console.log(err);
+    
     return res.status(500).send('Sorry, there is internal server issue happening right now :(');
 };
 
@@ -51,7 +53,7 @@ app.post('/register',
     function (req, res) {
         userDAO.createUser(req.body, function (err, user) {
             if (err) {
-                return errorHandler(res);
+                return errorHandler(err, res);
             }
 
             res.status(200).send(user.toJSON());
@@ -69,7 +71,7 @@ app.post('/login',
     function (req, res) {
         userDAO.findUserByUsername(req.body, function (err, user) {
             if (err) {
-                return errorHandler(res);
+                return errorHandler(err, res);
             }
 
             res.status(200).send(user.toJSON());
@@ -88,7 +90,7 @@ app.post('/response_templates',
     function (req, res) {
         responseGeneratorDAO.createResponseTemplate(req.body, function (err, responseTemplate) {
             if (err) {
-                return errorHandler(res);
+                return errorHandler(err, res);
             }
 
             res.status(200).send(responseTemplate);
@@ -99,7 +101,8 @@ app.post('/response_templates',
 app.post('/messages',
     ExpressValidation({
         body: {
-            message: Joi.string().required()
+            message: Joi.string().required(),
+            user_id: Joi.string().required()
         }
     }),
     function (req, res) {
@@ -107,18 +110,19 @@ app.post('/messages',
             wit_ai_object: function (next) {
                 witAIService.handleIncomingMessage(req.body.message, next);
             },
-            conversation: ['wit_ai_object', function (result, next) {
-                var conversationData = { user_id: 'ahmad' };
-                _.defaults(conversationData, result.wit_ai_object);
-
-                conversationDAO.createConversation(conversationData, next);
+            latest_conversation: function (next) {
+                conversationDAO.getLatestConversationByUserId(req.body.user_id, next);
+            },
+            conversation: ['wit_ai_object', 'latest_conversation', function (result, next) {
+                conversationDAO.createConversation(_.extend(req.body, result.wit_ai_object), next);
             }],
-            responses: ['conversation', function (result, next) {
-                responseGeneratorDAO.generateResponse(result.conversation, next);
+            responses: ['conversation', function (results, next) {
+                console.log('results', results);
+                responseGeneratorDAO.generateResponse(results.conversation, results.latest_conversation, next);
             }]
         }, function (err, results) {
             if (err) {
-                return errorHandler(res);
+                return errorHandler(err, res);
             }
 
             res.status(200).send(results.responses);

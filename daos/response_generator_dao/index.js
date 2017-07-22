@@ -22,24 +22,31 @@ ResponseGeneratorDAO.prototype.createResponseTemplate = function (responseTempla
     this.models.ReponseTemplate.create(responseTemplateData, callback);
 };
 
-ResponseGeneratorDAO.prototype.generateResponse = function (conversation, callback) {
+ResponseGeneratorDAO.prototype.generateResponse = function (conversation, context, callback) {
     assert.object(conversation);
     assert.string(conversation.message);
     assert.optionalString(conversation.intent);
     assert.string(conversation.user_id);
+    assert.object(context);
+    assert.optionalString(context.intent);
     assert.func(callback);
-
-    if (_.isUndefined(conversation.intent)) {
-        callback(null, 'Hey, sorry we don\'t understand what you are saying :(. Let me call an hooman for a second');
-    }
 
     var self = this;
 
+    console.log('conversation: ', conversation);
+    console.log('context: ', context);
+
+    // Handle direct intention 
     switch (conversation.intent) {
         case 'nearby_location': return self._handleNearbyLocationMessage(conversation, callback);
     }
 
-    callback({ error_code: 'UNHANDLED_ERROR', message: 'Could not handle conversation intent type' });
+    // Handle last context intention
+    switch (context.intent) {
+        case 'nearby_location': return self._handleNearbyLocationMessage(_.defaults(conversation, { intent: context.intent }), callback);    
+    }
+
+    callback(null, 'Hey, sorry we don\'t understand what you are saying :(. Let me call a hooman for a second');
 };
 
 ResponseGeneratorDAO.prototype._findResponseTemplatesByIntent = function (intent, callback) {
