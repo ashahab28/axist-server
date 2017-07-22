@@ -7,7 +7,8 @@ var ConversationSchema = new mongoose.Schema({
     message: { type: String, required: true },
     context: { type: Array },
     intent: { type: String },
-    location: { type: String }
+    location: { type: String },
+    response: { type: String }
 }, {
     timestamps: {
         createdAt: 'created',
