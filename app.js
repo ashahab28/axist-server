@@ -117,13 +117,14 @@ app.post('/messages',
                 conversationDAO.createConversation(_.extend(req.body, result.wit_ai_object), next);
             }],
             responses: ['conversation', function (results, next) {
-                console.log('results', results);
                 responseGeneratorDAO.generateResponse(results.conversation, results.latest_conversation, next);
             }]
         }, function (err, results) {
             if (err) {
                 return errorHandler(err, res);
             }
+
+            console.log('results', results);
 
             res.status(200).send(results.responses);
         });
