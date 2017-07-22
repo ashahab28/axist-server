@@ -22,7 +22,7 @@ ConversationDAO.prototype.createConversation = function (conversationData, callb
     this.models.Conversation.create(conversationData, callback);
 };
 
-ConversationDAO.prototype.findConversationsByUserId = function (userId, options, callback) {
+ConversationDAO.prototype.getConversationsByUserId = function (userId, options, callback) {
     assert.string(userId);
     assert.object(options);
     assert.func(callback);
@@ -37,7 +37,7 @@ ConversationDAO.prototype.findConversationsByUserId = function (userId, options,
     this.models.Conversation.find(query).sort({ created: -1 }).limit(conversationLimit).exec(callback);
 };
 
-ConversationDAO.prototype.findConversationById = function (conversationId, callback) {
+ConversationDAO.prototype.getConversationById = function (conversationId, callback) {
     assert.string(conversationId);
     assert.func(callback);
 
