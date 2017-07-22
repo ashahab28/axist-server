@@ -9,7 +9,7 @@ function ResponseGeneratorDAO (mongoConnection) {
 
     this.mongoConnection = mongoConnection;
     this.models = {
-        ReponseTemplate: this.mongoConnection.model('ReponseTemplate', require('./models/response_template'))
+        ResponseTemplate: this.mongoConnection.model('ReponseTemplate', require('./models/response_template'))
     };
 }
 
