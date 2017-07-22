@@ -7,13 +7,25 @@
   <p id='response_chat'></p>
   Userid: <input type="text" id="userid" name="userid"><br>
   Chat: <input type="text" id="message" name="message"><br>
-  <input type="submit" value="Submit" onclick="sendMessage()" onsubmit="return false">
+  <input type="submit" value="Submit" onclick="getLatestConversations()" onsubmit="return false">
 </body>
 </html>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.min.js"></script>
 <script>
-  var socket = io.connect('http://139.59.233.76:8080');
+  var socket = io.connect('http://localhost:8080');
+
+  function getLatestConversations() {
+    var userId = document.getElementById("userid").value;
+    var message = document.getElementById("message").value;
+
+    var messageToBeSend = {
+      "message": message,
+      "user_id": userId
+    };
+
+    socket.emit('get_latest_conversation', messageToBeSend);
+  }
 
   function sendMessage() {
     var userId = document.getElementById("userid").value;
@@ -34,6 +46,18 @@
   });
 
   socket.on('conversation_error', function (data) {
+    console.log(data);
+
+    document.getElementById("response_chat").innerHTML = data.error;
+  });
+
+  socket.on('get_latest_conversation', function (data) {
+    console.log(data);
+
+    document.getElementById("response_chat").innerHTML = data.messages;
+  });
+
+  socket.on('get_latest_conversation_error', function (data) {
     console.log(data);
 
     document.getElementById("response_chat").innerHTML = data.error;

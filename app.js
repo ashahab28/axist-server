@@ -1,5 +1,7 @@
 'use strict';
 
+var _ = require('underscore');
+var async = require('async');
 var express = require('express');
 var http = require('http');
 var socketio = require('socket.io');
@@ -8,10 +10,13 @@ var Joi = require('joi');
 var ExpressValidation = require('express-validation');
 var bodyParser = require('body-parser');
 
+var witAIConfig = require('./config/wit_ai');
 var mongoConfig = require('./config/mongo');
 
+var WitAIService = require('./services/wit_ai_service');
+
 var ConversationDAO = require('./daos/conversation_dao');
-var UserDAO = require('./daos/user_dao');
+var ResponseGeneratorDAO = require('./daos/response_generator_dao');
 
 var app = express();
 var server = http.Server(app);
@@ -19,47 +24,69 @@ var io = socketio(server);
 
 var mongoConnection = mongoose.createConnection(mongoConfig);
 
+var witAIService = new WitAIService(witAIConfig);
+
 var conversationDAO = new ConversationDAO(mongoConnection);
-var userDAO = new UserDAO(mongoConnection);
+var responseGeneratorDAO = new ResponseGeneratorDAO(mongoConnection);
+
+var errorHandler = function (err, res) {
+    console.log(err);
+    
+    return res.status(500).send('Sorry, there is internal server issue happening right now :(');
+};
 
 server.listen(8080);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-app.post('/register',
+app.post('/response_templates',
     ExpressValidation({
         body: {
-            username: Joi.string().required(),
-            password: Joi.string().required(),
-            email: Joi.string().required()
+            intent: Joi.string().required(),
+            response: Joi.string().required()
         }
     }),
     function (req, res) {
-        userDAO.createUser(req.body, function (err, user) {
+        responseGeneratorDAO.createResponseTemplate(req.body, function (err, responseTemplate) {
             if (err) {
-                return res.status(500).send('Sorry, there is internal server issue happening right now :(');
+                return errorHandler(err, res);
             }
 
-            res.status(200).send(user.toJSON());
+            res.status(200).send(responseTemplate);
         });
     }
 );
 
-app.post('/login', 
+app.post('/messages',
     ExpressValidation({
         body: {
-            username: Joi.string().required(),
-            password: Joi.string().required()
+            message: Joi.string().required(),
+            user_id: Joi.string().required()
         }
     }),
     function (req, res) {
-        userDAO.findUserByUsername(req.body, function (err, user) {
+        async.auto({
+            wit_ai_object: function (next) {
+                witAIService.handleIncomingMessage(req.body.message, next);
+            },
+            latest_conversation: function (next) {
+                conversationDAO.getLatestConversationByUserId(req.body.user_id, next);
+            },
+            conversation: ['wit_ai_object', 'latest_conversation', function (result, next) {
+                conversationDAO.createConversation(_.extend(req.body, result.wit_ai_object), next);
+            }],
+            responses: ['conversation', function (results, next) {
+                responseGeneratorDAO.generateResponse(results.conversation, results.latest_conversation, next);
+            }]
+        }, function (err, results) {
             if (err) {
-                return res.status(500).send('Sorry, there is internal server issue happening right now :(');
+                return errorHandler(err, res);
             }
 
-            res.status(200).send(user.toJSON());
+            console.log('results', results);
+
+            res.status(200).send(results.responses);
         });
     }
 );
@@ -67,48 +94,27 @@ app.post('/login',
 io.on('connection', function (socket) {
     socket.emit('conversation', { message: 'Hello! may i help you? :)' });
 
-    socket.on('register', function (message) {
+    socket.on('get_latest_conversation', function (message) {
         Joi.validate(message, Joi.object().keys({
-            username: Joi.string().required(),
-            password: Joi.string().required(),
-            email: Joi.string().required(),
+            user_id: Joi.string().required()
         }), { stripUnknown: { objects: true } }, function (err, validatedMessage) {
             if (err) {
-                return socket.emit('register_error', { error: 'Message is not in a valid format' });
+                return socket.emit('get_latest_conversation_error', { error: 'Message is not in a valid format' });
             }
 
-            userDAO.createUser(validatedMessage, function (err) {
+            conversationDAO.getConversationsByUserId(validatedMessage.user_id, { conversation_limit: 10 }, function (err, conversations) {
                 if (err) {
-                    console.log(err);
-
-                    return socket.emit('register_error', { error: 'Sorry, there is internal server issue happening right now :(' });
+                    return socket.emit('get_latest_conversation_error', { error: 'Get latest conversations error' });
                 }
 
-                socket.emit('register', { message: 'You have successfully registered to Axist! Yeay!' });
+                var messages = _.map(conversations, function (conversation) {
+                    return conversation.toJSON();
+                });
+
+                socket.emit('get_latest_conversation', { user_id: validatedMessage.user_id, messages: messages });
             });
         });
     });
-
-    socket.on('login', function (message) {
-        Joi.validate(message, Joi.object().keys({
-            username: Joi.string().required(),
-            password: Joi.string().required(),
-        }), { stripUnknown: { objects: true } }, function (err, validatedMessage) {
-            if (err) {
-                return socket.emit('login_error', { error: 'Message is not in a valid format' });
-            }
-
-            userDAO.findUserByUsername(validatedMessage, function (err, user) {
-                if (err) {
-                    console.log(err);
-
-                    return socket.emit('login_error', { error: 'Sorry, there is internal server issue happening right now :(' });
-                }
-
-                socket.emit('login', { message: 'Welcome to Axist! here is your user id : ' + user.id });
-            });
-        });
-    });    
 
     socket.on('conversation', function (message) {
         Joi.validate(message, Joi.object().keys({
@@ -126,7 +132,7 @@ io.on('connection', function (socket) {
                     return socket.emit('conversation_error', { error: 'Cannot save conversation' });
                 }
 
-                //call axist here and emit the response
+                //call axist here and save the response and emit the response
 
                 socket.emit('conversation', { message: 'Hey there, we receive your message! here is your message : ' + conversation.message });
             });

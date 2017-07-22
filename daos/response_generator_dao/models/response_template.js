@@ -2,14 +2,9 @@
 
 var mongoose = require('mongoose');
 
-var ConversationSchema = new mongoose.Schema({
-    user_id: { type: String, required: true },
-    message: { type: String, required: true },
-    context: { type: Array },
-    intent: { type: String },
-    location: { type: String },
-    package_id: { type: String },
-    response: { type: String }
+var ResponseStorageSchema = new mongoose.Schema({
+    intent: { type: String, required: true },
+    response: { type: String, required: true }
 }, {
     timestamps: {
         createdAt: 'created',
@@ -27,4 +22,4 @@ var ConversationSchema = new mongoose.Schema({
     }
 });
 
-module.exports = ConversationSchema;
+module.exports = ResponseStorageSchema;
