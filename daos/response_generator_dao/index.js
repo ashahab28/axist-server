@@ -9,7 +9,7 @@ function ResponseGeneratorDAO (mongoConnection) {
 
     this.mongoConnection = mongoConnection;
     this.models = {
-        ResponseTemplate: this.mongoConnection.model('ReponseTemplate', require('./models/response_template'))
+        ResponseTemplate: this.mongoConnection.model('ResponseTemplate', require('./models/response_template'))
     };
 }
 
@@ -19,7 +19,7 @@ ResponseGeneratorDAO.prototype.createResponseTemplate = function (responseTempla
     assert.string(responseTemplateData.response);
     assert.func(callback);
 
-    this.models.ReponseTemplate.create(responseTemplateData, callback);
+    this.models.ResponseTemplate.create(responseTemplateData, callback);
 };
 
 ResponseGeneratorDAO.prototype.generateResponse = function (conversation, context, callback) {
@@ -55,7 +55,7 @@ ResponseGeneratorDAO.prototype.generateResponse = function (conversation, contex
 };
 
 ResponseGeneratorDAO.prototype._findResponseTemplatesByIntent = function (intent, callback) {
-    this.models.ReponseTemplate.find({ intent: intent }, function (err, responseTemplates) {
+    this.models.ResponseTemplate.find({ intent: intent }, function (err, responseTemplates) {
         if (err) {
             return callback(err);
         }
