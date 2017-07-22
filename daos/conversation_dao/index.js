@@ -44,4 +44,11 @@ ConversationDAO.prototype.getConversationById = function (conversationId, callba
     this.models.Conversation.findById(conversationId, callback);
 };
 
+ConversationDAO.prototype.getLatestConversationByUserId = function (userId, callback) {
+    assert.string(userId);
+    assert.func(callback);
+
+    this.models.Conversation.findOne({ user_id: userId }).sort({ created: -1 }).exec(callback);
+};
+
 module.exports = ConversationDAO;
