@@ -37,12 +37,18 @@ ResponseGeneratorDAO.prototype.generateResponse = function (conversation, contex
     switch (conversation.intent) {
         case 'nearby_location': return self._handleNearbyLocationMessage(conversation, callback);
         case 'track_package_status': return self._handleTrackPackageStatusMessage(conversation, callback);
+        case 'track_package_complaint': return self._handleTrackPackageComplaintMessage(conversation, callback);
+        case 'greeting_ask': 
+        case 'greeting_end':
+        case 'dirty_words':
+        case 'check_bot': return self._handleConversationWithoutContext(conversation, callback);
     }
 
     // Handle last context intention
     switch (context.intent) {
         case 'nearby_location': return self._handleNearbyLocationMessage(_.defaults(conversation, { intent: context.intent }), callback);
         case 'track_package_status': return self._handleTrackPackageStatusMessage(_.defaults(conversation, { intent: context.intent }), callback);
+        case 'track_package_complaint': return self._handleTrackPackageComplaintMessage(_.defaults(conversation, { intent: context.intent }), callback);
     }
 
     callback(null, 'Hey, sorry we don\'t understand what you are saying :(. Let me call a hooman for a second');
@@ -103,7 +109,7 @@ ResponseGeneratorDAO.prototype._handleTrackPackageStatusMessage = function (conv
     var self = this;
     async.auto({
         package: function (next) {
-            // replace it with location DAO
+            // replace it with package DAO
             next(null, { id: conversation.package_id, status: 'COMPLETED' });
         },
         response_templates: function (next) {
@@ -118,6 +124,52 @@ ResponseGeneratorDAO.prototype._handleTrackPackageStatusMessage = function (conv
         }
 
         callback(null, self._generateStringResponse(results.chosen_template, _.values(results.package)));
+    });
+};
+
+ResponseGeneratorDAO.prototype._handleTrackPackageComplaintMessage = function (conversation, callback) {
+    if (_.isUndefined(conversation.package_id)) {
+        return callback(null, 'Please provide your package id.');
+    }
+
+    var self = this;
+
+    async.auto({
+        failure_reason: function (next) {
+            // replace it with package DAO
+            next(null, { id: conversation.package_id, failure_reason: 'crashed during car accidents' });
+        },
+        response_templates: function (next) {
+            self._findResponseTemplatesByIntent(conversation.intent, next);
+        },
+        chosen_template: ['response_templates', function (result, next) {
+            self._pickResponseTemplate(result.response_templates, conversation, next);
+        }]
+    }, function (err, results) {
+        if (err) {
+            return callback(err);
+        }
+
+        callback(null, self._generateStringResponse(results.chosen_template, _.values(results.failure_reason)));
+    });
+};
+
+ResponseGeneratorDAO.prototype._handleConversationWithoutContext = function (conversation, callback) {
+    var self = this;
+
+    async.auto({
+        response_templates: function (next) {
+            self._findResponseTemplatesByIntent(conversation.intent, next);
+        },
+        chosen_template: ['response_templates', function (result, next) {
+            self._pickResponseTemplate(result.response_templates, conversation, next);
+        }]
+    }, function (err, results) {
+        if (err) {
+            return callback(err);
+        }
+
+        callback(null, self._generateStringResponse(results.chosen_template, _.values(results.failure_reason)));
     });
 };
 
