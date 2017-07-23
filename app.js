@@ -27,7 +27,7 @@ var mongoConnection = mongoose.createConnection(mongoConfig);
 var witAIService = new WitAIService(witAIConfig);
 
 var conversationDAO = new ConversationDAO(mongoConnection);
-var responseGeneratorDAO = new ResponseGeneratorDAO(mongoConnection);
+var responseGeneratorDAO = new ResponseGeneratorDAO(mongoConnection, conversationDAO);
 
 var errorHandler = function (err, res) {
     console.log(err);
@@ -78,6 +78,9 @@ app.post('/messages',
             }],
             responses: ['conversation', function (results, next) {
                 responseGeneratorDAO.generateResponse(results.conversation, results.latest_conversation, next);
+            }],
+            updated_conversation: ['responses', function (results, next) {
+                conversationDAO.updateConversationResponse(results.conversation, results.responses, next);
             }]
         }, function (err, results) {
             if (err) {

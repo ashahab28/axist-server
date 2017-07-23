@@ -51,4 +51,36 @@ ConversationDAO.prototype.getLatestConversationByUserId = function (userId, call
     this.models.Conversation.findOne({ user_id: userId }).sort({ created: -1 }).exec(callback);
 };
 
+ConversationDAO.prototype.updateConversationResponse = function (conversation, response, callback) {
+    assert.object(conversation);
+    assert.string(response);
+    assert.func(callback);
+
+    this.models.Conversation.findOneAndUpdate({ _id: conversation.id },
+        {
+            $set: {
+                response: response
+            }
+        },
+        { new: true }, 
+        callback
+    );
+};
+
+ConversationDAO.prototype.updateConversationFeedback = function (conversation, isPositiveFeedback, callback) {
+    assert.object(conversation);
+    assert.bool(isPositiveFeedback);
+    assert.func(callback);
+
+    this.models.Conversation.findOneAndUpdate({ _id: conversation.id },
+        {
+            $set: {
+                feedback: isPositiveFeedback
+            }
+        },
+        { new: true }, 
+        callback
+    );
+};
+
 module.exports = ConversationDAO;

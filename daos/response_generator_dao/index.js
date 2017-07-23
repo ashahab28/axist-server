@@ -4,10 +4,13 @@ var _ = require('underscore');
 var assert = require('assert-plus');
 var async = require('async');
 
-function ResponseGeneratorDAO (mongoConnection) {
+var intentTypes = require('./config/intent_types');
+
+function ResponseGeneratorDAO (mongoConnection, conversationDAO) {
     assert.object(mongoConnection);
 
     this.mongoConnection = mongoConnection;
+    this.conversationDAO = conversationDAO;
     this.models = {
         ResponseTemplate: this.mongoConnection.model('ResponseTemplate', require('./models/response_template'))
     };
@@ -27,8 +30,7 @@ ResponseGeneratorDAO.prototype.generateResponse = function (conversation, contex
     assert.string(conversation.message);
     assert.optionalString(conversation.intent);
     assert.string(conversation.user_id);
-    assert.object(context);
-    assert.optionalString(context.intent);
+    assert.optionalObject(context);
     assert.func(callback);
 
     var self = this;
@@ -38,17 +40,21 @@ ResponseGeneratorDAO.prototype.generateResponse = function (conversation, contex
         case 'nearby_location': return self._handleNearbyLocationMessage(conversation, callback);
         case 'track_package_status': return self._handleTrackPackageStatusMessage(conversation, callback);
         case 'track_package_complaint': return self._handleTrackPackageComplaintMessage(conversation, callback);
-        case 'greeting_ask': 
-        case 'greeting_end':
-        case 'dirty_words':
-        case 'check_bot': return self._handleConversationWithoutContext(conversation, callback);
+        case 'positive_feedback': return self._handleFeedbackMessage(conversation, context, true, callback);
+        case 'negative_feedback': return self._handleFeedbackMessage(conversation, context, false, callback);
+        default: 
+            if (_.contains(intentTypes.indirect, conversation.intent)) {
+                return self._handleConversationWithoutContext(conversation, callback);
+            }
     }
 
     // Handle last context intention
-    switch (context.intent) {
-        case 'nearby_location': return self._handleNearbyLocationMessage(_.defaults(conversation, { intent: context.intent }), callback);
-        case 'track_package_status': return self._handleTrackPackageStatusMessage(_.defaults(conversation, { intent: context.intent }), callback);
-        case 'track_package_complaint': return self._handleTrackPackageComplaintMessage(_.defaults(conversation, { intent: context.intent }), callback);
+    if (!_.isUndefined(context)) {
+        switch (context.intent) {
+            case 'nearby_location': return self._handleNearbyLocationMessage(_.defaults(conversation, { intent: context.intent }), callback);
+            case 'track_package_status': return self._handleTrackPackageStatusMessage(_.defaults(conversation, { intent: context.intent }), callback);
+            case 'track_package_complaint': return self._handleTrackPackageComplaintMessage(_.defaults(conversation, { intent: context.intent }), callback);
+        }
     }
 
     callback(null, 'Hey, sorry we don\'t understand what you are saying :(. Let me call a hooman for a second');
@@ -107,6 +113,7 @@ ResponseGeneratorDAO.prototype._handleTrackPackageStatusMessage = function (conv
     }
 
     var self = this;
+
     async.auto({
         package: function (next) {
             // replace it with package DAO
@@ -158,6 +165,28 @@ ResponseGeneratorDAO.prototype._handleConversationWithoutContext = function (con
     var self = this;
 
     async.auto({
+        response_templates: function (next) {
+            self._findResponseTemplatesByIntent(conversation.intent, next);
+        },
+        chosen_template: ['response_templates', function (result, next) {
+            self._pickResponseTemplate(result.response_templates, conversation, next);
+        }]
+    }, function (err, results) {
+        if (err) {
+            return callback(err);
+        }
+
+        callback(null, self._generateStringResponse(results.chosen_template, _.values(results.failure_reason)));
+    });
+};
+
+ResponseGeneratorDAO.prototype._handleFeedbackMessage = function (conversation, context, isPositiveFeedback, callback) {
+    var self = this;
+
+    async.auto({
+        updated_context: function (next) {
+            self.conversationDAO.updateConversationFeedback(context, isPositiveFeedback, next);
+        },
         response_templates: function (next) {
             self._findResponseTemplatesByIntent(conversation.intent, next);
         },

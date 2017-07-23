@@ -9,7 +9,8 @@ var ConversationSchema = new mongoose.Schema({
     intent: { type: String },
     location: { type: String },
     package_id: { type: String },
-    response: { type: String }
+    response: { type: String },
+    feedback: { type: Boolean }
 }, {
     timestamps: {
         createdAt: 'created',
