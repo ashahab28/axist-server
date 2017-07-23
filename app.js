@@ -128,16 +128,30 @@ io.on('connection', function (socket) {
                 return socket.emit('conversation_error', { error: 'Message is not in a valid format' });
             }
 
-            conversationDAO.createConversation(validatedMessage, function (err, conversation) {
+            async.auto({
+                wit_ai_object: function (next) {
+                    witAIService.handleIncomingMessage(validatedMessage.message, next);
+                },
+                latest_conversation: function (next) {
+                    conversationDAO.getLatestConversationByUserId(validatedMessage.user_id, next);
+                },
+                conversation: ['wit_ai_object', 'latest_conversation', function (results, next) {
+                    conversationDAO.createConversation(_.extend(validatedMessage, results.wit_ai_object), next);
+                }],
+                responses: ['conversation', function (results, next) {
+                    responseGeneratorDAO.generateResponse(results.conversation, results.latest_conversation, next);
+                }],
+                updated_conversation: ['responses', function (results, next) {
+                    conversationDAO.updateConversationResponse(results.conversation, results.responses, next);
+                }]
+            }, function (err, results) {
                 if (err) {
-                    console.log(err);
-
-                    return socket.emit('conversation_error', { error: 'Cannot save conversation' });
+                    return socket.emit('conversation_error', { error: 'Cannot get resposne from Axist :(' });
                 }
 
-                //call axist here and save the response and emit the response
+                console.log('results', results);
 
-                socket.emit('conversation', { message: 'Hey there, we receive your message! here is your message : ' + conversation.message });
+                socket.emit('conversation', { user_id: results.updated_conversation.user_id, message: results.updated_conversation.response });
             });
         });
     });
