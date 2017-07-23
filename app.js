@@ -95,8 +95,6 @@ app.post('/messages',
 );
 
 io.on('connection', function (socket) {
-    socket.emit('conversation', { message: 'Hello! may i help you? :)' });
-
     socket.on('get_latest_conversation', function (message) {
         Joi.validate(message, Joi.object().keys({
             user_id: Joi.string().required()
