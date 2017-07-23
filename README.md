@@ -1,2 +1,9 @@
 # axist-server
-by waka team hehe
+
+## Installation
+
+`npm install`
+
+## Run Instructions
+
+`node app.js`
