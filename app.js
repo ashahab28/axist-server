@@ -114,7 +114,7 @@ io.on('connection', function (socket) {
                     return conversation.toJSON();
                 });
 
-                socket.emit('get_latest_conversation', { user_id: validatedMessage.user_id, messages: messages });
+                socket.emit('get_latest_conversation', { messages: messages });
             });
         });
     });
@@ -151,7 +151,7 @@ io.on('connection', function (socket) {
 
                 console.log('results', results);
 
-                socket.emit('conversation', { user_id: results.updated_conversation.user_id, message: results.updated_conversation.response });
+                socket.emit('conversation', { message: results.updated_conversation.toJSON() });
             });
         });
     });
