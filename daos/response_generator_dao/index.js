@@ -75,9 +75,9 @@ ResponseGeneratorDAO.prototype._findResponseTemplatesByIntent = function (intent
 };
 
 ResponseGeneratorDAO.prototype._pickResponseTemplate = function (responseTemplates, conversation, callback) {
-    // Create an algorithm to pick the best response template based on personality / classification shit
+    // Algorithm to pick the best response template based on personality / classification
 
-    // Now just do random shit
+    // Now just do random
     callback(null, responseTemplates[0].response);
 };
 
